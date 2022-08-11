@@ -1,0 +1,89 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "fcos3d_test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/test.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "configs/mmdet3d/voxel-detection/monocular-detection_tensorrt_static-928x1600.py",
+                "/home/sjh/Projects/mmdetection3d/configs/fcos3d/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d.py",
+                "--model",
+                "mmdeploy-models/fcos3d/end2end.engine",
+                "--metrics",
+                "mAP"
+            ]
+        },
+        {
+            "name": "fcos3d_visual",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/mmdeploy-models/fcos3d/visualize_fcos3d.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+        },
+        {
+            "name": "pointpillars",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/deploy.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "configs/mmdet3d/voxel-detection/voxel-detection_tensorrt_dynamic-kitti.py",
+                "/home/sjh/Projects/mmdetection3d/configs/pointpillars/hv_pointpillars_secfpn_6x8_160e_kitti-3d-3class.py",
+                "/home/sjh/Projects/mmdetection3d/checkpoints/hv_pointpillars_secfpn_6x8_160e_kitti-3d-3class_20220301_150306-37dc2420.pth",
+                "/home/sjh/Projects/mmdetection3d/demo/data/kitti/kitti_000008.bin",
+                "--work-dir",
+                "mmdeploy-models/pointpillars",
+                "--device",
+                "cuda:0",
+                "--show"
+            ]
+        },
+        {
+            "name": "faster_rcnn",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/deploy.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "configs/mmdet/detection/detection_tensorrt_dynamic-320x320-1344x1344.py",
+                "/home/sjh/Projects/mmdetection/configs/faster_rcnn/faster_rcnn_r50_fpn_1x_coco.py",
+                "/home/sjh/Projects/mmdetection/checkpoints/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
+                "/home/sjh/Projects/mmdetection/demo/demo.jpg",
+                "--work-dir",
+                "mmdeploy-models/faster-rcnn",
+                "--device",
+                "cuda:0",
+                "--dump-info"
+            ]
+        },
+        {
+            "name": "fcos3d",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/deploy.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "configs/mmdet3d/voxel-detection/monocular-detection_tensorrt_static-928x1600.py",
+                "/home/sjh/Projects/mmdetection3d/configs/fcos3d/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d.py",
+                "/home/sjh/Projects/mmdetection3d/checkpoints/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d_finetune_20210717_095645-8d806dc2.pth",
+                "/home/sjh/Projects/mmdetection3d/demo/data/nuscenes/n015-2018-07-24-11-22-45+0800__CAM_BACK__1532402927637525.jpg",
+                "--work-dir",
+                "mmdeploy-models/fcos3d",
+                "--device",
+                "cuda:0",
+                "--show"
+            ]
+        }
+    ]
+}

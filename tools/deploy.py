@@ -102,7 +102,7 @@ def main():
     pipeline_funcs = [
         torch2onnx, torch2torchscript, extract_model, create_calib_input_data
     ]
-    PIPELINE_MANAGER.enable_multiprocess(True, pipeline_funcs)
+    PIPELINE_MANAGER.enable_multiprocess(False, pipeline_funcs)
     PIPELINE_MANAGER.set_log_level(log_level, pipeline_funcs)
 
     deploy_cfg_path = args.deploy_cfg

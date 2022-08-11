@@ -113,7 +113,7 @@ venv*
 
 data/
 data
-.vscode
+# .vscode
 .idea
 .DS_Store
 
