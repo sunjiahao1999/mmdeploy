@@ -5,7 +5,7 @@ from mmdeploy.core import FUNCTION_REWRITER, mark
 from mmdeploy.utils import is_dynamic_shape
 
 
-def __forward_impl(ctx, self, img, img_metas, **kwargs):
+def __forward_impl(ctx, self, img, cam2img, cam2img_inverse, img_metas, **kwargs):
     """Rewrite and adding mark for `forward`.
 
     Encapsulate this function for rewriting `forward` of BaseDetector.
@@ -21,7 +21,7 @@ def __forward_impl(ctx, self, img, img_metas, **kwargs):
     if not is_dynamic_flag:
         img_shape = [int(val) for val in img_shape]
     img_metas[0]['img_shape'] = img_shape
-    return self.simple_test(img, img_metas, rescale=True)
+    return self.simple_test(img, cam2img, cam2img_inverse, img_metas, rescale=True)
 
 
 
@@ -30,6 +30,8 @@ def __forward_impl(ctx, self, img, img_metas, **kwargs):
 def singlestagemono3d__forward(ctx,
                            self,
                            img,
+                           cam2img,
+                           cam2img_inverse,
                            img_metas=None,
                            return_loss=False,
                            **kwargs):
@@ -43,4 +45,4 @@ def singlestagemono3d__forward(ctx,
     if isinstance(img, list):
         img = img[0]
 
-    return __forward_impl(ctx, self, img, img_metas=img_metas, **kwargs)
+    return __forward_impl(ctx, self, img, cam2img, cam2img_inverse, img_metas=img_metas, **kwargs)

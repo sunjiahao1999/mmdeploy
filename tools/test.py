@@ -104,6 +104,7 @@ def main():
 
     # load the model of the backend
     model = task_processor.init_backend_model(args.model)
+    # model = task_processor.init_pytorch_model(args.model)
 
     is_device_cpu = (args.device == 'cpu')
     device_id = None if is_device_cpu else parse_device_id(args.device)

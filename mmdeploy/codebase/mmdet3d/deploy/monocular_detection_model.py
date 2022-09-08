@@ -18,6 +18,7 @@ from mmcv.runner import force_fp32
 from mmdet3d.models import build_head
 
 
+
 def __build_backend_monocular_model(cls_name: str, registry: Registry, *args,
                                 **kwargs):
     return registry.module_dict[cls_name](*args, **kwargs)
@@ -92,18 +93,21 @@ class MonocularDetectionModel(BaseBackendModel):
             list: A list contains predictions.
         """
         input_img = img[0].contiguous()
-        outputs = self.wrapper({self.input_name: input_img})
+        cam2img = torch.tensor(img_metas[0][0]['cam2img'], device=input_img.device)
+        cam2img_inverse = torch.inverse(cam2img)
+        outputs = self.wrapper({'img': input_img,'cam2img':cam2img,'cam2img_inverse':cam2img_inverse})
         outputs = self.wrapper.output_to_list(outputs)
-        outputs = [outputs[:5],outputs[5:10],outputs[10:15],outputs[15:20],outputs[20:25]]
-        bbox_outputs = self.head.get_bboxes(
-            *outputs, img_metas[0], cfg=self.model_cfg.model.test_cfg,rescale=rescale)
+        outputs = [x.squeeze(0) for x in outputs]
+        outputs[0] = img_metas[0][0]['box_type_3d'](
+            outputs[0], 9, origin=(0.5, 0.5, 0.5))
+        outputs.pop(3)
+        # outputs = [outputs[:5],outputs[5:10],outputs[10:15],outputs[15:20],outputs[20:25]]
+        # bbox_outputs = self.head.get_bboxes(
+        #     *outputs, img_metas[0], cfg=self.model_cfg.model.test_cfg,rescale=rescale)
 
         from mmdet3d.core import bbox3d2result
 
-        bbox_img = [
-            bbox3d2result(bboxes, scores, labels, attrs)
-            for bboxes, scores, labels, attrs in bbox_outputs
-        ]
+        bbox_img = [bbox3d2result(*outputs)]
 
         bbox_list = [dict() for i in range(len(img_metas))]
         for result_dict, img_bbox in zip(bbox_list, bbox_img):

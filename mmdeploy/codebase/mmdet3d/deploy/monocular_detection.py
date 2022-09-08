@@ -169,11 +169,13 @@ class MonocularDetection(BaseTask):
             img_metas.data[0] for img_metas in data['img_metas']
         ]
         data['img'] = [img.data[0] for img in data['img']]
+        data['cam2img'] = [torch.tensor(data['img_metas'][0][0]['cam2img'])]
+        data['cam2img_inverse'] = [torch.inverse(data['cam2img'][0])]
         if self.device != 'cpu':
             # scatter to specified GPU
             data = scatter(data, [self.device])[0]
 
-        return data, data['img']
+        return data, tuple(data['img'] + data['cam2img'] + data['cam2img_inverse'])
 
     def visualize(self,
                   model: torch.nn.Module,
@@ -197,6 +199,8 @@ class MonocularDetection(BaseTask):
             score_thr (float): The score threshold to display the bbox.
                 Defaults to 0.3.
         """
+        if output_file.endswith('.jpg'):
+            output_file = output_file.split('.')[0]
         from mmdet3d.apis import show_result_meshlab
         data, _ = self.create_input(image)
         show_result_meshlab(
@@ -266,7 +270,7 @@ class MonocularDetection(BaseTask):
         Returns:
             list: The predictions of model inference.
         """
-        return model(**model_inputs, return_loss=False, rescale=True)
+        return [model(model_inputs['img'], model_inputs['img_metas'], return_loss=False, rescale=True)]
 
     @staticmethod
     def evaluate_outputs(model_cfg,
@@ -418,7 +422,7 @@ class MonocularDetection(BaseTask):
                             score_thr=show_score_thr)
             results.extend(result)
 
-            batch_size = len(result)
+            batch_size = 1
             for _ in range(batch_size):
                 prog_bar.update()
         return results
