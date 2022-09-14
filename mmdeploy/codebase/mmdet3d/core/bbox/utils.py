@@ -1,13 +1,11 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from logging import warning
-
-import numpy as np
 import torch
 
-import mmdeploy
-from mmdeploy.core import FUNCTION_REWRITER, mark
+from mmdeploy.core import FUNCTION_REWRITER
 
-@FUNCTION_REWRITER.register_rewriter('mmdet3d.core.bbox.coder.fcos3d_bbox_coder.')
+
+@FUNCTION_REWRITER.register_rewriter(
+    'mmdet3d.core.bbox.structures.utils.points_img2cam')
 def points_img2cam(points, cam2img_inverse):
     """Project points in image coordinates to camera coordinates.
     Args:
@@ -28,12 +26,14 @@ def points_img2cam(points, cam2img_inverse):
     unnormed_xys = torch.cat([xys * depths, depths], dim=-1)
 
     inv_pad_cam2img = torch.eye(4, dtype=xys.dtype, device=xys.device)
-    inv_pad_cam2img[:cam2img_inverse.shape[0], :cam2img_inverse.shape[1]] = cam2img_inverse
+    inv_pad_cam2img[:cam2img_inverse.shape[0], :cam2img_inverse.
+                    shape[1]] = cam2img_inverse
     inv_pad_cam2img = inv_pad_cam2img.transpose(0, 1)
 
     # Do operation in homogeneous coordinates.
     num_points = unnormed_xys.shape[1]
-    homo_xys = torch.cat([unnormed_xys, xys.new_ones((1, num_points, 1))], dim=-1)
+    homo_xys = torch.cat(
+        [unnormed_xys, xys.new_ones((1, num_points, 1))], dim=-1)
     points3D = torch.matmul(homo_xys, inv_pad_cam2img)[..., :3]
 
     return points3D

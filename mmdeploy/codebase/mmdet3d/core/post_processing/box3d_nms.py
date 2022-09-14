@@ -1,15 +1,16 @@
-import numba
-import numpy as np
 import torch
-from mmcv.ops import nms, nms_rotated
-from torch import Tensor
 
 import mmdeploy
-from mmdeploy.core import FUNCTION_REWRITER, mark
+from mmdeploy.core import FUNCTION_REWRITER
 from mmdeploy.mmcv.ops import ONNXBEVNMSOp, TRTBatchedBEVNMSop
 
 
-def select_nms_index(scores, bboxes, nms_index, keep_top_k, dir_scores=None, attr_scores=None):
+def select_nms_index(scores,
+                     bboxes,
+                     nms_index,
+                     keep_top_k,
+                     dir_scores=None,
+                     attr_scores=None):
     """Transform NMSRotated output.
 
     Args:
@@ -34,29 +35,33 @@ def select_nms_index(scores, bboxes, nms_index, keep_top_k, dir_scores=None, att
     labels = cls_inds.unsqueeze(0)
 
     # sort
-    is_use_topk = keep_top_k > 0 and (torch.onnx.is_in_onnx_export() or keep_top_k < scores.shape[1])
+    is_use_topk = keep_top_k > 0 and (torch.onnx.is_in_onnx_export()
+                                      or keep_top_k < scores.shape[1])
     if is_use_topk:
         scores, topk_inds = scores.topk(keep_top_k, dim=1)
     else:
         scores, topk_inds = scores.sort(dim=1, descending=True)
-    bboxes = torch.gather(bboxes, 1, topk_inds.unsqueeze(2).repeat(1, 1, bboxes.shape[2]))
+    bboxes = torch.gather(bboxes, 1,
+                          topk_inds.unsqueeze(2).repeat(1, 1, bboxes.shape[2]))
     labels = torch.gather(labels, 1, topk_inds)
     if dir_scores is not None:
         dir_scores = torch.gather(dir_scores, 1, topk_inds)
     if attr_scores is not None:
         attr_scores = torch.gather(attr_scores, 1, topk_inds)
-    nms_index = nms_index[topk_inds.reshape(-1),2]
+    nms_index = nms_index[topk_inds.reshape(-1), 2]
 
     return (bboxes, scores, labels, dir_scores, attr_scores, nms_index)
 
 
 @FUNCTION_REWRITER.register_rewriter(
-    func_name='mmdeploy.codebase.mmdet3d.core.post_processing.box3d_nms._box3d_multiclass_nms', backend='tensorrt'
-)
+    func_name='mmdeploy.codebase.mmdet3d.core.post_processing.box3d_nms.'
+    '_box3d_multiclass_nms',
+    backend='tensorrt')
 # This function duplicates functionality of mmcv.ops.iou_3d.nms_bev
 # from mmcv<=1.5, but using cuda ops from mmcv.ops.nms.nms_rotated.
 # Nms api will be unified in mmdetection3d one day.
-def box3d_multiclass_nms__tensorrt(ctx,
+def box3d_multiclass_nms__tensorrt(
+    ctx,
     mlvl_bboxes,
     mlvl_bboxes_for_nms,
     mlvl_scores,
@@ -65,7 +70,6 @@ def box3d_multiclass_nms__tensorrt(ctx,
     max_num,
     mlvl_dir_scores=None,
     mlvl_attr_scores=None,
-    mlvl_bboxes2d=None,
 ):
     """Multi-class NMS for 3D boxes. The IoU used for NMS is defined as the 2D
     IoU between BEV boxes.
@@ -97,12 +101,11 @@ def box3d_multiclass_nms__tensorrt(ctx,
     # do multi class nms
     # the fg class id range: [0, num_classes-1]
     num_classes = int(mlvl_scores.shape[-1])
-    torch.save(mlvl_bboxes_for_nms,'./bboxes.pth')
-    torch.save(mlvl_scores,'./scores.pth')
     mlvl_bboxes_for_nms = mlvl_bboxes_for_nms.unsqueeze(2)
-    dets, labels, selected = TRTBatchedBEVNMSop.apply(
-        mlvl_bboxes_for_nms, mlvl_scores, num_classes, -1, max_num, nms_thr, score_thr
-    )
+    dets, labels, selected = TRTBatchedBEVNMSop.apply(mlvl_bboxes_for_nms,
+                                                      mlvl_scores, num_classes,
+                                                      -1, max_num, nms_thr,
+                                                      score_thr)
     selected = selected.squeeze(0)
     bboxes = mlvl_bboxes[:, selected, :]
     scores = mlvl_scores[:, selected, labels.squeeze(0)]
@@ -112,12 +115,9 @@ def box3d_multiclass_nms__tensorrt(ctx,
     results = (bboxes, scores, labels)
 
     if mlvl_dir_scores is not None:
-        results = results + (dir_scores,)
+        results = results + (dir_scores, )
     if mlvl_attr_scores is not None:
-        results = results + (attr_scores,)
-    # if mlvl_bboxes2d is not None:
-    #     results = results + (bboxes2d, )
-
+        results = results + (attr_scores, )
     return results
 
 
@@ -155,12 +155,16 @@ def _box3d_multiclass_nms(
             and `labels` of shape [N, num_det].
     """
     scores = scores.permute(0, 2, 1)
-    selected_indices = ONNXBEVNMSOp.apply(bboxes_for_nms, scores, nms_thr, score_thr)
+    selected_indices = ONNXBEVNMSOp.apply(bboxes_for_nms, scores, nms_thr,
+                                          score_thr)
 
-    return select_nms_index(scores, bboxes, selected_indices, max_num, dir_scores, attr_scores)
+    return select_nms_index(scores, bboxes, selected_indices, max_num,
+                            dir_scores, attr_scores)
 
 
-@FUNCTION_REWRITER.register_rewriter(func_name='mmdet3d.core.post_processing.box3d_multiclass_nms')
+@FUNCTION_REWRITER.register_rewriter(
+    func_name='mmdet3d.core.post_processing.box3d_multiclass_nms')
 def box3d_multiclass_nms(*args, **kwargs):
-    """Wrapper function for `_multiclass_nms`."""
-    return mmdeploy.codebase.mmdet3d.core.post_processing.box3d_nms._box3d_multiclass_nms(*args, **kwargs)
+    """Wrapper function for `_box3d_multiclass_nms`."""
+    return mmdeploy.codebase.mmdet3d.core.post_processing.box3d_nms.\
+        _box3d_multiclass_nms(*args, **kwargs)

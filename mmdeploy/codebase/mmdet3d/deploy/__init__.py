@@ -5,4 +5,7 @@ from .voxel_detection_model import VoxelDetectionModel
 from .monocular_detection import MonocularDetection
 from .monocular_detection_model import MonocularDetectionModel
 
-__all__ = ['MMDetection3d', 'VoxelDetection', 'VoxelDetectionModel','MonocularDetection','MonocularDetectionModel']
+__all__ = [
+    'MMDetection3d', 'VoxelDetection', 'VoxelDetectionModel',
+    'MonocularDetection', 'MonocularDetectionModel'
+]

@@ -1,66 +1,25 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from copy import deepcopy
 from os import path as osp
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import mmcv
 import numpy as np
 import torch
 import torch.nn as nn
+from mmcv.image import tensor2imgs
 from mmcv.parallel import collate, scatter
-from mmdet3d.core.bbox import get_box_type
 from mmdet3d.core import Box3DMode
+from mmdet3d.core.bbox import get_box_type
 from mmdet3d.datasets.pipelines import Compose
-from torch.utils.data import DataLoader, Dataset
+from mmdet3d.models import (Base3DDetector, Base3DSegmentor,
+                            SingleStageMono3DDetector)
+from torch.utils.data import Dataset
 
 from mmdeploy.codebase.base import BaseTask
 from mmdeploy.codebase.mmdet3d.deploy.mmdetection3d import MMDET3D_TASK
-from mmdeploy.utils import Task, get_root_logger, load_config
+from mmdeploy.utils import Task, get_root_logger
 from mmdeploy.utils.config_utils import is_dynamic_shape
-from .voxel_detection_model import VoxelDetectionModel
-
-from mmcv.image import tensor2imgs
-
-from mmdet3d.models import (Base3DDetector, Base3DSegmentor,
-                            SingleStageMono3DDetector)
-
-
-def process_model_config(model_cfg: mmcv.Config,
-                         imgs: Union[Sequence[str], Sequence[np.ndarray]],
-                         input_shape: Optional[Sequence[int]] = None):
-    """Process the model config.
-
-    Args:
-        model_cfg (mmcv.Config): The model config.
-        imgs (Sequence[str] | Sequence[np.ndarray]): Input image(s), accepted
-            data type are List[str], List[np.ndarray].
-        input_shape (list[int]): A list of two integer in (width, height)
-            format specifying input shape. Default: None.
-
-    Returns:
-        mmcv.Config: the model config after processing.
-    """
-    from mmdet.datasets import replace_ImageToTensor
-
-    cfg = model_cfg.copy()
-
-    if isinstance(imgs[0], np.ndarray):
-        cfg = cfg.copy()
-        # set loading pipeline type
-        cfg.data.test.pipeline[0].type = 'LoadImageFromWebcam'
-    # for static exporting
-    if input_shape is not None:
-        cfg.data.test.pipeline[1]['img_scale'] = tuple(input_shape)
-        transforms = cfg.data.test.pipeline[1]['transforms']
-        for trans in transforms:
-            trans_type = trans['type']
-            if trans_type == 'Resize':
-                trans['keep_ratio'] = False
-            elif trans_type == 'Pad':
-                trans['size_divisor'] = 1
-
-    cfg.data.test.pipeline = replace_ImageToTensor(cfg.data.test.pipeline)
-    return cfg
 
 
 @MMDET3D_TASK.register_module(Task.MONOCULAR_DETECTION.value)
@@ -105,7 +64,7 @@ class MonocularDetection(BaseTask):
         model = init_model(self.model_cfg, model_checkpoint, device)
         return model.eval()
 
-    def create_input(self, 
+    def create_input(self,
                      imgs: Union[str, np.ndarray],
                      input_shape: Sequence[int] = None) \
             -> Tuple[Dict, torch.Tensor]:
@@ -117,27 +76,25 @@ class MonocularDetection(BaseTask):
         Returns:
             tuple: (data, img), meta information for the input image and input.
         """
-        # if not isinstance(imgs, (list, tuple)):
-        #     imgs = [imgs]
-        # dynamic_flag = is_dynamic_shape(self.deploy_cfg)
+        dynamic_flag = is_dynamic_shape(self.deploy_cfg)
         cfg = self.model_cfg
         # Drop pad_to_square when static shape. Because static shape should
         # ensure the shape before input image.
-        # if not dynamic_flag:
-        #     transform = cfg.data.test.pipeline[1]
-        #     if 'transforms' in transform:
-        #         transform_list = transform['transforms']
-        #         for i, step in enumerate(transform_list):
-        #             if step['type'] == 'Pad' and 'pad_to_square' in step \
-        #                and step['pad_to_square']:
-        #                 transform_list.pop(i)
-        #                 break
+        if not dynamic_flag:
+            transform = cfg.data.test.pipeline[1]
+            if 'transforms' in transform:
+                transform_list = transform['transforms']
+                for i, step in enumerate(transform_list):
+                    if step['type'] == 'Pad' and 'pad_to_square' in step \
+                       and step['pad_to_square']:
+                        transform_list.pop(i)
+                        break
         # build the data pipeline
         test_pipeline = deepcopy(cfg.data.test.pipeline)
         test_pipeline = Compose(test_pipeline)
         box_type_3d, box_mode_3d = get_box_type(cfg.data.test.box_type_3d)
-        # get data info containing calib
-        ann_file=self.deploy_cfg.codebase_config.ann_file
+        # get  info
+        ann_file = self.deploy_cfg.codebase_config.ann_file
         data_infos = mmcv.load(ann_file)
         # find the info corresponding to this image
         for x in data_infos['images']:
@@ -158,9 +115,10 @@ class MonocularDetection(BaseTask):
             mask_fields=[],
             seg_fields=[])
 
-        # camera points to image conversion 
+        # camera points to image conversion
         if box_mode_3d == Box3DMode.CAM:
-            data['img_info'].update(dict(cam_intrinsic=img_info['cam_intrinsic']))
+            data['img_info'].update(
+                dict(cam_intrinsic=img_info['cam_intrinsic']))
 
         data = test_pipeline(data)
 
@@ -175,7 +133,8 @@ class MonocularDetection(BaseTask):
             # scatter to specified GPU
             data = scatter(data, [self.device])[0]
 
-        return data, tuple(data['img'] + data['cam2img'] + data['cam2img_inverse'])
+        return data, tuple(data['img'] + data['cam2img'] +
+                           data['cam2img_inverse'])
 
     def visualize(self,
                   model: torch.nn.Module,
@@ -213,51 +172,6 @@ class MonocularDetection(BaseTask):
             task='mono-det')
 
     @staticmethod
-    def read_pcd_file(pcd: str, model_cfg: Union[str, mmcv.Config],
-                      device: str) -> Dict:
-        """Read data from pcd file and run test pipeline.
-
-        Args:
-            pcd (str): Pcd file path.
-            model_cfg (str | mmcv.Config): The model config.
-            device (str): A string specifying device type.
-
-        Returns:
-            dict: meta information for the input pcd.
-        """
-        if isinstance(pcd, (list, tuple)):
-            pcd = pcd[0]
-        model_cfg = load_config(model_cfg)[0]
-        test_pipeline = Compose(model_cfg.data.test.pipeline)
-        box_type_3d, box_mode_3d = get_box_type(
-            model_cfg.data.test.box_type_3d)
-        data = dict(
-            pts_filename=pcd,
-            box_type_3d=box_type_3d,
-            box_mode_3d=box_mode_3d,
-            # for ScanNet demo we need axis_align_matrix
-            ann_info=dict(axis_align_matrix=np.eye(4)),
-            sweeps=[],
-            # set timestamp = 0
-            timestamp=[0],
-            img_fields=[],
-            bbox3d_fields=[],
-            pts_mask_fields=[],
-            pts_seg_fields=[],
-            bbox_fields=[],
-            mask_fields=[],
-            seg_fields=[])
-        data = test_pipeline(data)
-        data = collate([data], samples_per_gpu=1)
-        data['img_metas'] = [
-            img_metas.data[0] for img_metas in data['img_metas']
-        ]
-        data['points'] = [point.data[0] for point in data['points']]
-        if device != 'cpu':
-            data = scatter(data, [device])[0]
-        return data
-
-    @staticmethod
     def run_inference(model: nn.Module,
                       model_inputs: Dict[str, torch.Tensor]) -> List:
         """Run inference once for a object detection model of mmdet3d.
@@ -270,7 +184,13 @@ class MonocularDetection(BaseTask):
         Returns:
             list: The predictions of model inference.
         """
-        return [model(model_inputs['img'], model_inputs['img_metas'], return_loss=False, rescale=True)]
+        return [
+            model(
+                model_inputs['img'],
+                model_inputs['img_metas'],
+                return_loss=False,
+                rescale=True)
+        ]
 
     @staticmethod
     def evaluate_outputs(model_cfg,
@@ -348,11 +268,11 @@ class MonocularDetection(BaseTask):
         raise NotImplementedError
 
     def single_gpu_test(self,
-                    model,
-                    data_loader,
-                    show=False,
-                    out_dir=None,
-                    show_score_thr=0.3):
+                        model,
+                        data_loader,
+                        show=False,
+                        out_dir=None,
+                        show_score_thr=0.3):
         """Test model with single gpu.
 
         This method tests model with single gpu and gives the 'show' option.
@@ -381,7 +301,7 @@ class MonocularDetection(BaseTask):
                 # Visualize the results of MMDetection3D model
                 # 'show_results' is MMdetection3D visualization API
                 models_3d = (Base3DDetector, Base3DSegmentor,
-                            SingleStageMono3DDetector)
+                             SingleStageMono3DDetector)
                 if isinstance(model.module, models_3d):
                     model.module.show_results(
                         data,
@@ -394,12 +314,13 @@ class MonocularDetection(BaseTask):
                 else:
                     batch_size = len(result)
                     if batch_size == 1 and isinstance(data['img'][0],
-                                                    torch.Tensor):
+                                                      torch.Tensor):
                         img_tensor = data['img'][0]
                     else:
                         img_tensor = data['img'][0].data[0]
                     img_metas = data['img_metas'][0].data[0]
-                    imgs = tensor2imgs(img_tensor, **img_metas[0]['img_norm_cfg'])
+                    imgs = tensor2imgs(img_tensor,
+                                       **img_metas[0]['img_norm_cfg'])
                     assert len(imgs) == len(img_metas)
 
                     for i, (img, img_meta) in enumerate(zip(imgs, img_metas)):
@@ -410,7 +331,8 @@ class MonocularDetection(BaseTask):
                         img_show = mmcv.imresize(img_show, (ori_w, ori_h))
 
                         if out_dir:
-                            out_file = osp.join(out_dir, img_meta['ori_filename'])
+                            out_file = osp.join(out_dir,
+                                                img_meta['ori_filename'])
                         else:
                             out_file = None
 

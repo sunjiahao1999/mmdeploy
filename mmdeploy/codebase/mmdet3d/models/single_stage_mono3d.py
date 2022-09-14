@@ -1,11 +1,12 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch
 
-from mmdeploy.core import FUNCTION_REWRITER, mark
+from mmdeploy.core import FUNCTION_REWRITER
 from mmdeploy.utils import is_dynamic_shape
 
 
-def __forward_impl(ctx, self, img, cam2img, cam2img_inverse, img_metas, **kwargs):
+def __forward_impl(ctx, self, img, cam2img, cam2img_inverse, img_metas,
+                   **kwargs):
     """Rewrite and adding mark for `forward`.
 
     Encapsulate this function for rewriting `forward` of BaseDetector.
@@ -21,20 +22,21 @@ def __forward_impl(ctx, self, img, cam2img, cam2img_inverse, img_metas, **kwargs
     if not is_dynamic_flag:
         img_shape = [int(val) for val in img_shape]
     img_metas[0]['img_shape'] = img_shape
-    return self.simple_test(img, cam2img, cam2img_inverse, img_metas, rescale=True)
-
+    return self.simple_test(
+        img, cam2img, cam2img_inverse, img_metas, rescale=True)
 
 
 @FUNCTION_REWRITER.register_rewriter(
-    'mmdet3d.models.detectors.single_stage_mono3d.SingleStageMono3DDetector.forward')
+    'mmdet3d.models.detectors.single_stage_mono3d.SingleStageMono3DDetector.'
+    'forward')
 def singlestagemono3d__forward(ctx,
-                           self,
-                           img,
-                           cam2img,
-                           cam2img_inverse,
-                           img_metas=None,
-                           return_loss=False,
-                           **kwargs):
+                               self,
+                               img,
+                               cam2img,
+                               cam2img_inverse,
+                               img_metas=None,
+                               return_loss=False,
+                               **kwargs):
     """Rewrite this function to run the model directly."""
     if img_metas is None:
         img_metas = [{}]
@@ -45,4 +47,11 @@ def singlestagemono3d__forward(ctx,
     if isinstance(img, list):
         img = img[0]
 
-    return __forward_impl(ctx, self, img, cam2img, cam2img_inverse, img_metas=img_metas, **kwargs)
+    return __forward_impl(
+        ctx,
+        self,
+        img,
+        cam2img,
+        cam2img_inverse,
+        img_metas=img_metas,
+        **kwargs)

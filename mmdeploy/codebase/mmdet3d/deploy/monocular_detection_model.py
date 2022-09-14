@@ -4,23 +4,14 @@ from typing import Dict, List, Sequence, Union
 import mmcv
 import torch
 from mmcv.utils import Registry
-from torch.nn import functional as F
 
 from mmdeploy.codebase.base import BaseBackendModel
-from mmdeploy.core import RewriterContext
 from mmdeploy.utils import (Backend, get_backend, get_codebase_config,
-                            get_root_logger, load_config)
-
-import numpy as np
-from mmdet3d.core import (box3d_multiclass_nms, limit_period, points_img2cam,
-                          xywhr2xyxyr)
-from mmcv.runner import force_fp32
-from mmdet3d.models import build_head
-
+                            load_config)
 
 
 def __build_backend_monocular_model(cls_name: str, registry: Registry, *args,
-                                **kwargs):
+                                    **kwargs):
     return registry.module_dict[cls_name](*args, **kwargs)
 
 
@@ -52,7 +43,6 @@ class MonocularDetectionModel(BaseBackendModel):
         self.deploy_cfg = deploy_cfg
         self.model_cfg = model_cfg
         self.device = device
-        self.head = build_head(model_cfg.model.bbox_head)
         self._init_wrapper(
             backend=backend, backend_files=backend_files, device=device)
 
@@ -93,17 +83,19 @@ class MonocularDetectionModel(BaseBackendModel):
             list: A list contains predictions.
         """
         input_img = img[0].contiguous()
-        cam2img = torch.tensor(img_metas[0][0]['cam2img'], device=input_img.device)
+        cam2img = torch.tensor(
+            img_metas[0][0]['cam2img'], device=input_img.device)
         cam2img_inverse = torch.inverse(cam2img)
-        outputs = self.wrapper({'img': input_img,'cam2img':cam2img,'cam2img_inverse':cam2img_inverse})
+        outputs = self.wrapper({
+            'img': input_img,
+            'cam2img': cam2img,
+            'cam2img_inverse': cam2img_inverse
+        })
         outputs = self.wrapper.output_to_list(outputs)
         outputs = [x.squeeze(0) for x in outputs]
         outputs[0] = img_metas[0][0]['box_type_3d'](
             outputs[0], 9, origin=(0.5, 0.5, 0.5))
-        outputs.pop(3)
-        # outputs = [outputs[:5],outputs[5:10],outputs[10:15],outputs[15:20],outputs[20:25]]
-        # bbox_outputs = self.head.get_bboxes(
-        #     *outputs, img_metas[0], cfg=self.model_cfg.model.test_cfg,rescale=rescale)
+        outputs.pop(3)  # pop dir_scores
 
         from mmdet3d.core import bbox3d2result
 
@@ -114,43 +106,27 @@ class MonocularDetectionModel(BaseBackendModel):
             result_dict['img_bbox'] = img_bbox
         return bbox_list
 
-    
     def show_result(self,
                     data: Dict,
                     result: List,
                     out_dir: str,
-                    file_name: str,
                     show=False,
-                    snapshot=False,
-                    **kwargs):
-        from mmcv.parallel import DataContainer as DC
-        from mmdet3d.core import show_result
-        if isinstance(data['points'][0], DC):
-            points = data['points'][0]._data[0][0].numpy()
-        elif mmcv.is_list_of(data['points'][0], torch.Tensor):
-            points = data['points'][0][0]
-        else:
-            ValueError(f"Unsupported data type {type(data['points'][0])} "
-                       f'for visualization!')
-        pred_bboxes = result[0]['boxes_3d']
-        pred_labels = result[0]['labels_3d']
-        pred_bboxes = pred_bboxes.tensor.cpu().numpy()
-        show_result(
-            points,
-            None,
-            pred_bboxes,
+                    score_thr=0.3):
+        from mmdet3d.apis import show_result_meshlab
+        show_result_meshlab(
+            data,
+            result,
             out_dir,
-            file_name,
+            score_thr,
             show=show,
-            snapshot=snapshot,
-            pred_labels=pred_labels)
-
+            snapshot=not show,
+            task='mono-det')
 
 
 def build_monocular_detection_model(model_files: Sequence[str],
-                                model_cfg: Union[str, mmcv.Config],
-                                deploy_cfg: Union[str,
-                                                  mmcv.Config], device: str):
+                                    model_cfg: Union[str, mmcv.Config],
+                                    deploy_cfg: Union[str, mmcv.Config],
+                                    device: str):
     """Build 3d voxel object detection model for different backends.
 
     Args:

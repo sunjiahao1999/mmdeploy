@@ -85,14 +85,14 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "configs/mmdet3d/voxel-detection/monocular-detection_tensorrt_static-928x1600.py",
+                "configs/mmdet3d/voxel-detection/monocular-detection_onnxruntime_dynamic.py",
                 "/home/sjh/Projects/mmdetection3d/configs/fcos3d/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d.py",
                 "/home/sjh/Projects/mmdetection3d/checkpoints/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d_finetune_20210717_095645-8d806dc2.pth",
-                "/home/sjh/Projects/mmdetection3d/demo/data/nuscenes/n015-2018-07-24-11-22-45+0800__CAM_BACK__1532402927637525.jpg",
+                "tests/test_codebase/test_mmdet3d/data/nuscenes/n015-2018-07-24-11-22-45+0800__CAM_BACK__1532402927637525.jpg",
                 "--work-dir",
-                "mmdeploy-models/fcos3d_3",
+                "mmdeploy-models/fcos3d_2",
                 "--device",
-                "cuda:0",
+                "cpu",
                 "--show"
             ]
         }
