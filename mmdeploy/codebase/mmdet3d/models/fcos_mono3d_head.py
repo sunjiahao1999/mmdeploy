@@ -22,6 +22,40 @@ def fcosmono3dhead__get_bboxes(
     cfg=None,
     rescale=False,
 ):
+    """Rewrite `get_bboxes` of `FCOSMono3DHead` for default backend.
+
+    Rewrite this function to deploy model, transform network output for a
+    batch into bbox predictions.
+
+    Args:
+        ctx (ContextCaller): The context with additional information.
+        self: The instance of the original class.
+        cls_scores (list[Tensor]): Classification scores for all
+            scale levels, each is a 4D-tensor, has shape
+            (batch_size, num_priors * num_classes, H, W).
+        bbox_preds (list[Tensor]): Box energies / deltas for all
+            scale levels, each is a 4D-tensor, has shape
+            (batch_size, num_priors * 9, H, W).
+        dir_cls_preds (list[Tensor], Optional): Direction prediction for
+            all scale level, each is a 4D-tensor, has shape
+            (batch_size, num_priors * 1, H, W).
+        img_metas (list[dict], Optional): Image meta info. Default None.
+        cfg (mmcv.Config, Optional): Test / postprocessing configuration,
+            if None, test_cfg would be used.  Default None.
+        rescale (bool): If True, return boxes in original image space.
+            Default False.
+        with_nms (bool): If True, do nms before return boxes.
+            Default True.
+
+    Returns:
+        If with_nms == True:
+            tuple[Tensor, Tensor]: tuple[Tensor, Tensor]: (dets, labels),
+            `dets` of shape [N, num_det, 5] and `labels` of shape
+            [N, num_det].
+        Else:
+            tuple[Tensor, Tensor, Tensor]: batch_mlvl_bboxes,
+                batch_mlvl_scores, batch_mlvl_centerness
+    """
     assert len(cls_scores) == len(bbox_preds) == len(dir_cls_preds) == len(
         centernesses) == len(attr_preds)
     num_levels = len(cls_scores)

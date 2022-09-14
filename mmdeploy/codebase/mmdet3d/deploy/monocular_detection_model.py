@@ -21,7 +21,7 @@ __BACKEND_MODEL = mmcv.utils.Registry(
 
 @__BACKEND_MODEL.register_module('end2end')
 class MonocularDetectionModel(BaseBackendModel):
-    """End to end model for inference of 3d voxel detection.
+    """End to end model for inference of monocular detection.
 
     Args:
         backend (Backend): The backend enum, specifying backend type.
@@ -29,7 +29,7 @@ class MonocularDetectionModel(BaseBackendModel):
                 (e.g. '.onnx' for ONNX Runtime, '.param' and '.bin' for ncnn).
         device (str): A string specifying device type.
         model_cfg (str | mmcv.Config): The model config.
-        deploy_cfg (str|mmcv.Config): Deployment config file or loaded Config
+        deploy_cfg (str| mmcv.Config): Deployment config file or loaded Config
             object.
     """
 
@@ -67,8 +67,8 @@ class MonocularDetectionModel(BaseBackendModel):
     def forward(self,
                 img: Sequence[torch.Tensor],
                 img_metas: Sequence[dict],
-                return_loss=False,
-                rescale=False):
+                return_loss: bool = False,
+                rescale: bool = False):
         """Run forward inference.
 
         Args:
@@ -76,8 +76,10 @@ class MonocularDetectionModel(BaseBackendModel):
                 in [N, ndim] float tensor. points[:, :3] contain xyz points
                 and points[:, 3:] contain other information like reflectivity
             img_metas (Sequence[dict]): A list of meta info for image(s).
-            return_loss (Bool): Consistent with the pytorch model.
+            return_loss (bool): Consistent with the pytorch model.
                 Default = False.
+            rescale (bool): Whether to rescale the results.
+                Defaults = False.
 
         Returns:
             list: A list contains predictions.
@@ -127,7 +129,7 @@ def build_monocular_detection_model(model_files: Sequence[str],
                                     model_cfg: Union[str, mmcv.Config],
                                     deploy_cfg: Union[str, mmcv.Config],
                                     device: str):
-    """Build 3d voxel object detection model for different backends.
+    """Build monocular detection model for different backends.
 
     Args:
         model_files (Sequence[str]): Input model file(s).
@@ -138,7 +140,7 @@ def build_monocular_detection_model(model_files: Sequence[str],
         device (str):  Device to input model
 
     Returns:
-        VoxelDetectionModel: Detector for a configured backend.
+        VMonocularDetectionModel: Detector for a configured backend.
     """
     deploy_cfg, model_cfg = load_config(deploy_cfg, model_cfg)
 
