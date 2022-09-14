@@ -56,9 +56,13 @@ class Backend(AdvancedEnum):
     ONNXRUNTIME = 'onnxruntime'
     PPLNN = 'pplnn'
     NCNN = 'ncnn'
+    SNPE = 'snpe'
     OPENVINO = 'openvino'
     SDK = 'sdk'
     TORCHSCRIPT = 'torchscript'
+    RKNN = 'rknn'
+    ASCEND = 'ascend'
+    COREML = 'coreml'
     DEFAULT = 'default'
 
 
@@ -82,3 +86,5 @@ SDK_TASK_MAP = {
     Task.ROTATED_DETECTION:
     dict(component='ResizeRBBox', cls_name='RotatedDetector')
 }
+
+TENSORRT_MAX_TOPK = 3840
