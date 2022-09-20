@@ -41,16 +41,14 @@ def select_nms_index(scores,
         scores, topk_inds = scores.topk(keep_top_k, dim=1)
     else:
         scores, topk_inds = scores.sort(dim=1, descending=True)
-    bboxes = torch.gather(bboxes, 1,
-                          topk_inds.unsqueeze(2).repeat(1, 1, bboxes.shape[2]))
-    labels = torch.gather(labels, 1, topk_inds)
+    topk_inds = topk_inds.squeeze(0)
+    bboxes = bboxes[:, topk_inds, :]
+    labels = labels[:, topk_inds]
     if dir_scores is not None:
-        dir_scores = torch.gather(dir_scores, 1, topk_inds)
+        dir_scores = dir_scores[:, topk_inds]
     if attr_scores is not None:
-        attr_scores = torch.gather(attr_scores, 1, topk_inds)
-    nms_index = nms_index[topk_inds.reshape(-1), 2]
-
-    return (bboxes, scores, labels, dir_scores, attr_scores, nms_index)
+        attr_scores = attr_scores[:, topk_inds]
+    return (bboxes, scores, labels, dir_scores, attr_scores)
 
 
 @FUNCTION_REWRITER.register_rewriter(
@@ -108,9 +106,11 @@ def box3d_multiclass_nms__tensorrt(
                                                       score_thr)
     selected = selected.squeeze(0)
     bboxes = mlvl_bboxes[:, selected, :]
-    scores = mlvl_scores[:, selected, labels.squeeze(0)]
-    dir_scores = mlvl_dir_scores[:, selected]
-    attr_scores = mlvl_attr_scores[:, selected]
+    scores = dets[:, :, -1]
+    if mlvl_dir_scores is not None:
+        dir_scores = mlvl_dir_scores[:, selected]
+    if mlvl_attr_scores is not None:
+        attr_scores = mlvl_attr_scores[:, selected]
 
     results = (bboxes, scores, labels)
 
@@ -162,8 +162,8 @@ def _box3d_multiclass_nms(
                             dir_scores, attr_scores)
 
 
-@FUNCTION_REWRITER.register_rewriter(
-    func_name='mmdet3d.core.post_processing.box3d_multiclass_nms')
+# @FUNCTION_REWRITER.register_rewriter(
+#     func_name='mmdet3d.core.post_processing.box3d_multiclass_nms')
 def box3d_multiclass_nms(*args, **kwargs):
     """Wrapper function for `_box3d_multiclass_nms`."""
     return mmdeploy.codebase.mmdet3d.core.post_processing.box3d_nms.\

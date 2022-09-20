@@ -25,8 +25,11 @@ def voxelnet__simple_test(ctx,
         List: Result of model.
     """
     x = self.extract_feat(voxels, num_points, coors, img_metas)
-    bbox_preds, scores, dir_scores = self.bbox_head(x)
-    return bbox_preds, scores, dir_scores
+    outs = self.bbox_head(x)
+    bbox_list = self.bbox_head.get_bboxes(
+            *outs, img_metas, rescale=rescale)
+    return bbox_list
+    # return x
 
 
 @FUNCTION_REWRITER.register_rewriter(

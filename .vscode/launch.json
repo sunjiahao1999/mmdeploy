@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "pointpillar_visual",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/mmdeploy-models/pointpillars_3/visualize.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "test_3d_nms",
             "type": "python",
             "request": "launch",
@@ -47,12 +55,12 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "configs/mmdet3d/voxel-detection/voxel-detection_tensorrt_dynamic-kitti.py",
+                "configs/mmdet3d/voxel-detection/voxel-detection_tensorrt_dynamic-kitti-32x4.py",
                 "/home/sjh/Projects/mmdetection3d/configs/pointpillars/hv_pointpillars_secfpn_6x8_160e_kitti-3d-3class.py",
                 "/home/sjh/Projects/mmdetection3d/checkpoints/hv_pointpillars_secfpn_6x8_160e_kitti-3d-3class_20220301_150306-37dc2420.pth",
                 "/home/sjh/Projects/mmdetection3d/demo/data/kitti/kitti_000008.bin",
                 "--work-dir",
-                "mmdeploy-models/pointpillars",
+                "mmdeploy-models/pointpillars_3",
                 "--device",
                 "cuda:0",
                 "--show"
@@ -66,12 +74,12 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "configs/mmdet/detection/detection_onnxruntime_static.py",
+                "configs/mmdet/detection/detection_tensorrt_dynamic-320x320-1344x1344.py",
                 "/home/sjh/Projects/mmdetection/configs/faster_rcnn/faster_rcnn_r50_fpn_1x_coco.py",
                 "/home/sjh/Projects/mmdetection/checkpoints/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth",
                 "/home/sjh/Projects/mmdetection/demo/demo.jpg",
                 "--work-dir",
-                "mmdeploy-models/faster-rcnn",
+                "mmdeploy-models/faster-rcnn_2",
                 "--device",
                 "cuda:0",
                 "--dump-info"
@@ -85,14 +93,14 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "configs/mmdet3d/voxel-detection/monocular-detection_onnxruntime_dynamic.py",
+                "configs/mmdet3d/voxel-detection/monocular-detection_tensorrt_dynamic-320x320-1600x1600.py",
                 "/home/sjh/Projects/mmdetection3d/configs/fcos3d/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d.py",
                 "/home/sjh/Projects/mmdetection3d/checkpoints/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d_finetune_20210717_095645-8d806dc2.pth",
                 "tests/test_codebase/test_mmdet3d/data/nuscenes/n015-2018-07-24-11-22-45+0800__CAM_BACK__1532402927637525.jpg",
                 "--work-dir",
-                "mmdeploy-models/fcos3d_2",
+                "mmdeploy-models/fcos3d_3",
                 "--device",
-                "cpu",
+                "cuda:0",
                 "--show"
             ]
         }

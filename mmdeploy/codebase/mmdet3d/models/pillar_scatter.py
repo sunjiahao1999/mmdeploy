@@ -23,14 +23,17 @@ def pointpillarsscatter__forward(ctx,
     canvas = torch.zeros(
         self.in_channels,
         self.nx * self.ny,
+        # self.in_channels,
         dtype=voxel_features.dtype,
         device=voxel_features.device)
 
     indices = coors[:, 2] * self.nx + coors[:, 3]
     indices = indices.long()
     voxels = voxel_features.t()
+    # indices = indices.unsqueeze(0).repeat(self.in_channels, 1)
     # Now scatter the blob back to the canvas.
     canvas[:, indices] = voxels
+    # canvas.scatter_(1, indices, voxels)
     # Undo the column stacking to final 4-dim tensor
     canvas = canvas.view(1, self.in_channels, self.ny, self.nx)
     return canvas

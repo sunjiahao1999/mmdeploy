@@ -150,6 +150,7 @@ class TRTBatchedRotatedNMSop(torch.autograd.Function):
             clip_boxes_i=False,
             outputs=2)
 
+
 class ONNXBEVNMSOp(torch.autograd.Function):
     """Create onnx::NMSRotated op."""
 
@@ -223,6 +224,7 @@ class ONNXBEVNMSOp(torch.autograd.Function):
             scores,
             iou_threshold_f=float(iou_threshold),
             score_threshold_f=float(score_threshold))
+
 
 class TRTBatchedBEVNMSop(torch.autograd.Function):
     """Create mmdeploy::TRTBatchedNMS op for TensorRT backend.
