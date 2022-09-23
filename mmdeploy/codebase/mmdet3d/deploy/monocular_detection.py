@@ -93,7 +93,7 @@ class MonocularDetection(BaseTask):
         test_pipeline = deepcopy(cfg.data.test.pipeline)
         test_pipeline = Compose(test_pipeline)
         box_type_3d, box_mode_3d = get_box_type(cfg.data.test.box_type_3d)
-        # get  info
+        # get info
         ann_file = self.deploy_cfg.codebase_config.ann_file
         data_infos = mmcv.load(ann_file)
         # find the info corresponding to this image

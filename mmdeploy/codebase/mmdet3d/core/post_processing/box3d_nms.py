@@ -1,3 +1,4 @@
+# Copyright (c) OpenMMLab. All rights reserved.
 import torch
 
 import mmdeploy
@@ -33,6 +34,10 @@ def select_nms_index(scores,
     scores = scores[batch_inds, cls_inds, box_inds].unsqueeze(0)
     bboxes = bboxes[batch_inds, box_inds, ...].unsqueeze(0)
     labels = cls_inds.unsqueeze(0)
+    if dir_scores is not None:
+        dir_scores = dir_scores[batch_inds, box_inds].unsqueeze(0)
+    if attr_scores is not None:
+        attr_scores = attr_scores[batch_inds, box_inds].unsqueeze(0)
 
     # sort
     is_use_topk = keep_top_k > 0 and (torch.onnx.is_in_onnx_export()
