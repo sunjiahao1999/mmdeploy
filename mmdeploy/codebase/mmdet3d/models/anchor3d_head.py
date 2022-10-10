@@ -1,9 +1,10 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-import torch
 import numpy as np
+import torch
+from mmdet3d.core.bbox.structures import limit_period
+
 from mmdeploy.codebase.mmdet3d.core.post_processing import box3d_multiclass_nms
 from mmdeploy.core import FUNCTION_REWRITER
-from mmdet3d.core.bbox.structures import limit_period
 
 
 @FUNCTION_REWRITER.register_rewriter(
@@ -79,5 +80,4 @@ def anchor3dhead__get_bboxes(ctx,
             dir_rot + self.dir_offset +
             np.pi * mlvl_dir_scores.to(mlvl_bboxes.dtype))
     return box3d_multiclass_nms(mlvl_bboxes, mlvl_bboxes_for_nms, mlvl_scores,
-                                cfg.score_thr, cfg.nms_thr, cfg.max_num,
-                                mlvl_dir_scores)
+                                cfg.score_thr, cfg.nms_thr, cfg.max_num)

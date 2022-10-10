@@ -8,7 +8,7 @@
             "name": "centerpoint_visual",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/mmdeploy-models/centerpoint/visualize.py",
+            "program": "${workspaceFolder}/mmdeploy-models/centerpoint_2/visualize.py",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -35,7 +35,7 @@
             "name": "pointpillar_visual",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/mmdeploy-models/pointpillars_2/visualize.py",
+            "program": "${workspaceFolder}/mmdeploy-models/pointpillars_3/visualize.py",
             "console": "integratedTerminal",
             "justMyCode": true
         },
