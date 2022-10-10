@@ -48,19 +48,6 @@ def centerpoint__simple_test_pts(ctx, self, x, img_metas, rescale=False):
         List: Result of model.
     """
     outs = self.pts_bbox_head(x)
-    # bbox_preds, scores, dir_scores = [], [], []
-    # for task_res in outs:
-    #     bbox_preds.append(task_res[0]['reg'])
-    #     bbox_preds.append(task_res[0]['height'])
-    #     bbox_preds.append(task_res[0]['dim'])
-    #     if 'vel' in task_res[0].keys():
-    #         bbox_preds.append(task_res[0]['vel'])
-    #     scores.append(task_res[0]['heatmap'])
-    #     dir_scores.append(task_res[0]['rot'])
-    # bbox_preds = torch.cat(bbox_preds, dim=1)
-    # scores = torch.cat(scores, dim=1)
-    # dir_scores = torch.cat(dir_scores, dim=1)
-    # return scores, bbox_preds, dir_scores
     bbox_list = self.pts_bbox_head.get_bboxes(outs, img_metas, rescale=rescale)
     return bbox_list
 
